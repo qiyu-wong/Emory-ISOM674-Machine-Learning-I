@@ -1,0 +1,139 @@
+
+```{r}
+AllData <- read.table("C:/Users/10331/OneDrive/Desktop/hw1/GradedHW1-All-Data.csv",header=T,sep=",",
+                      stringsAsFactors = F,na.strings="")
+```
+
+```{r}
+AllData <- AllData[AllData$Bldg.Type=="1Fam",]
+```
+
+```{r}
+RPerm <- sample(nrow(AllData))
+AllData <- AllData[RPerm,]
+```
+
+```{r}
+class(AllData)
+is.list(AllData)
+is.matrix(AllData)
+is.vector(AllData)
+```
+
+```{r}
+TrainInd <- ceiling(nrow(AllData)/2)
+ValInd <- ceiling((nrow(AllData)-TrainInd)/2)+TrainInd
+```
+
+```{r}
+TrainData <- AllData[1:TrainInd,]
+ValData <- AllData[(TrainInd+1):ValInd,]
+TestData <- AllData[(ValInd+1):nrow(AllData),]
+```
+
+```{r}
+labels <- c("Lot.Area","Total.Bsmt.SF","Gr.Liv.Area","Full.Bath","Bedroom.AbvGr", "BuildingAge","SalePrice")
+```
+
+```{r}
+ValData <- read.table("C:/Users/10331/OneDrive/Desktop/hw1/GradedHW1-Validation-Data.csv",header=T,sep=",",
+                      stringsAsFactors = F,na.strings="")
+TrainData <- read.table("C:/Users/10331/OneDrive/Desktop/hw1/GradedHW1-Train-Data.csv",header=T,sep=",",
+                      stringsAsFactors = F,na.strings="")
+TestData <- read.table("C:/Users/10331/OneDrive/Desktop/hw1/GradedHW1-Test-Data.csv",header=T,sep=",",
+                      stringsAsFactors = F,na.strings="")
+```
+
+```{r}
+ValData$BuildingAge <- 2010 - ValData$Year.Built
+TrainData$BuildingAge <- 2010 - TrainData$Year.Built
+TestData$BuildingAge <- 2010 - TestData$Year.Built
+```
+
+```{r}
+ValData <- ValData[ValData$Bldg.Type=="1Fam",labels] 
+TrainData <- TrainData[TrainData$Bldg.Type=="1Fam",labels]
+TestData <- TestData[TestData$Bldg.Type=="1Fam",labels]
+```
+
+```{r}
+ValData <- ValData[complete.cases(ValData),]
+TrainData <- TrainData[complete.cases(TrainData),]
+TestData <- TestData[complete.cases(TestData),]
+```
+
+```{r}
+  out <- knn.reg(train=TrainData[,-7],test=ValData[,-7],y=TrainData$SalePrice,k=12)
+  rmse_t <- mean((ValData$SalePrice - out$pred)**2)**0.5
+  rmse_t
+```
+
+```{r}
+library(FNN)
+library(Metrics) 
+rmse <-vector()
+key <- 40
+for (num in 1:key){
+  out <- knn.reg(train=TrainData[,-7],test=ValData[,-7],y=TrainData$SalePrice,k=num)
+  rmse[num] <- mean((ValData$SalePrice - out$pred)**2)**0.5
+}
+```
+
+```{r}
+rmse_t <- data.frame(k = 1:key, rmse = rmse)
+plot(rmse_t)
+```
+
+```{r}
+out <- knn.reg(train=rbind(TrainData[,-7],ValData[,-7]),test=TestData[,-7],y=rbind(TrainData,ValData)[,"SalePrice"],k=12)
+rmse_o1 <- mean((TestData$SalePrice - out$pred)**2)**0.5
+rmse_o1
+```
+```{r}
+TrainData2 <- TrainData
+TestData2 <- TestData
+ValData2 <- ValData
+for (y in 1:ncol(TrainData)){
+    TrainData2[,y] <- (TrainData[,y] - mean(TrainData[,y]))/sd(TrainData[,y])
+    TestData2[,y] <- (TestData[,y] - mean(TrainData[,y]))/sd(TrainData[,y])
+    ValData2[,y] <- (ValData[,y] - mean(TrainData[,y]))/sd(TrainData[,y])
+}
+```
+
+```{r}
+summary(TrainData2)
+```
+
+```{r}
+  out <- knn.reg(train=TrainData2[,-7],test=ValData2[,-7],y=TrainData$SalePrice,k=20)
+  rmse_t <- mean((ValData$SalePrice - out$pred)**2)**0.5
+  rmse_t
+```
+
+```{r}
+rmse <-vector()
+key <- 40
+for (num in 1:key){
+  out <- knn.reg(train=TrainData2[,-7],test=ValData2[,-7],y=TrainData$SalePrice,k=num)
+  rmse[num] <- mean((ValData$SalePrice - out$pred)**2)**0.5
+}
+```
+
+```{r}
+rmse_t2 <- data.frame(k = 1:key, rmse = rmse)
+plot(rmse_t2)
+```
+```{r}
+out <- knn.reg(train=rbind(TrainData2[,-7],ValData2[,-7]),test=TestData2[,-7],y=rbind(TrainData,ValData)[,"SalePrice"],k=11)
+rmse_o2 <- mean((TestData$SalePrice - out$pred)**2)**0.5
+rmse_o2
+```
+```{r}
+pdf('HW1-Plots-qwan268.pdf')
+plot(rmse_t)
+title("Qiyu Wang\nQuestion2:RMSE of KNNs for diferent K values and standardized values")
+plot(rmse_t2)
+title("Question4:RMSE of KNNs for diferent K values and standardized values")
+dev.off()
+```
+
